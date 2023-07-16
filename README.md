@@ -7,7 +7,7 @@ BLE and climate readings are published via MQTT.
 
 No extra hardware is needed for video and BLE functionality but you'll need an [Adafruit SI7021](https://www.adafruit.com/product/3251) to enable the climate sensor . The code could be easily modified for another sensor if you have one handy.
 
-##Download & Configure
+## Download & Configure
 To download, simply `git clone https://github.com/bdunn44/garage-pi`. To configure, modify `garage-pi/config/config.yaml` in the following format:
 ```
 scan-interval: 5 #<-- scan every 5 seconds 
@@ -30,7 +30,7 @@ The video stream configuration is generated during installation and can be found
 
 Logs will be found in `garage-pi.log` the project's root directory. You can modify `config/logging.conf` to modify log levels and output. See documentation on the [Python logging module](https://docs.python.org/3/library/logging.html) for details.
 
-##Installation
+## Install
 To install:
 ```
 cd garage-pi
@@ -46,13 +46,13 @@ sudo service garage-pi start
 sudo service garage-pi restart
 ```
 
-##Testing
+## Test
 You can easily test functionality with `scripts/test.sh`. Available commands are:
   - `./test.sh ble` - continuously scans for BLE beacons and prints details.
   - `./test.sh climate` - continuously takes climate readings and prints details.
   - `./test.sh ble` - starts the go2rtc server and video stream. You can view the go2rtc UI at `your-pi-address:1984`.
 
-##Integration with Home Assistant
+## Integrating with Home Assistant
 MQTT messages are published to the `garage-pi/ble` and `garage-pi/climate` topics by default (the `garage-pi` piece is configurable). For example:
 
 __garage-pi/ble__
