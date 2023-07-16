@@ -9,7 +9,7 @@ No extra hardware is needed for video and BLE functionality but you'll need an [
 
 ## Download & Configure
 To download, simply `git clone https://github.com/bdunn44/garage-pi`. To configure, modify `garage-pi/config/config.yaml` in the following format:
-```
+```yaml
 scan-interval: 5 #<-- scan every 5 seconds 
 mqtt:
   hostname: my-mqtt.my-domain.com #<-- MQTT server host/IP
@@ -52,22 +52,79 @@ You can easily test functionality with `scripts/test.sh`. Available commands are
   - `./test.sh climate` - continuously takes climate readings and prints details.
   - `./test.sh ble` - starts the go2rtc server and video stream. You can view the go2rtc UI at `your-pi-address:1984`.
 
-## Integrating with Home Assistant
-MQTT messages are published to the `garage-pi/ble` and `garage-pi/climate` topics by default (the `garage-pi` piece is configurable). For example:
+## MQTT Messages
+MQTT messages are published to the `garage-pi/ble/[MAC address]`, `garage-pi/temperature`, and `garage-pi/humidity` topics by default (the `garage-pi` piece is configurable). The log entries below provide good example messages:
 
-__garage-pi/ble__
 ```
-{"eb:8e:ef:d3:e7:98": {"name": "example-beacon-name", "rssi": -63, "detected": true, "publish": true}}
-{"eb:8e:ef:d3:e7:98": {"name": "example-beacon-name", "rssi": -80, "detected": true, "publish": true}}
-{"eb:8e:ef:d3:e7:98": {"name": "example-beacon-name", "rssi": -90, "detected": true, "publish": true}}
-{"eb:8e:ef:d3:e7:98": {"name": null, "rssi": null, "detected": false, "publish": true}}
+2023-07-16 11:01:49,951 - garage-pi - INFO - Published: {'topic': 'garage-pi/ble/eb:8e:ef:d3:e7:98', 'payload': '{"detected": true, "rssi": -81}', 'retain': True}
+2023-07-16 11:01:49,954 - garage-pi - INFO - Published: {'topic': 'garage-pi/temperature', 'payload': '80.49', 'retain': True}
+2023-07-16 11:01:49,960 - garage-pi - INFO - Published: {'topic': 'garage-pi/humidity', 'payload': '33.07', 'retain': True}
 ```
-Note that RSSI strength increases as it approaches 0. The root dict will contain a key for each MAC address in the configured watch list.
 
-__garage-pi/climate__
+## Integration with Home Assistant
+You can configure MQTT sensors to read the MQTT messages and create a sensor to capture the current state. For example:
+```yaml
+mqtt:
+  sensor: 
+    - name: garage_car_ble
+      state_topic: "garage-pi/ble/eb:8e:ef:d3:e7:98"
+      value_template: "{{ value_json.detected }}"
+      json_attributes_topic: "garage-pi/ble/eb:8e:ef:d3:e7:98"
+      icon: mdi:bluetooth-connect
+
+    - name: garage_temperature
+      state_topic: "garage-pi/temperature"
+      icon: mdi:thermometer
+
+    - name: garage_humidity
+      state_topic: "garage-pi/humidity"
+      icon: mdi:water-percent
 ```
-{"temperature": 83.62, "humidity": 32.08, "publish": true}
-{"temperature": 83.62, "humidity": 32.08, "publish": true}
-{"temperature": 83.62, "humidity": 32.08, "publish": true}
-{"temperature": 83.62, "humidity": 32.08, "publish": true}
+
+A basic automation could simply check for the BLE sensor to flip between `True` (detected) and `False` (not detected). The example below leverages a 30-second timer to ensure any rapid changes between detected and not detected while the car is at the boundary of signal range won't cause the garage door to go up and down. 
+```yaml
+alias: Control Garage Door
+description: ""
+trigger:
+  - platform: state
+    entity_id:
+      - sensor.garage_car_ble
+    from: "False"
+    to: "True"
+    id: arrived
+  - platform: state
+    entity_id:
+      - sensor.garage_car_ble
+    from: "True"
+    to: "False"
+    id: departed
+condition:
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: timer.garage_automation_active
+        state: active
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: arrived
+        sequence:
+          - service: cover.open_cover
+            data: {}
+            target:
+              entity_id: cover.garage_door
+      - conditions:
+          - condition: trigger
+            id: departed
+        sequence:
+          - service: cover.close_cover
+            data: {}
+            target:
+              entity_id: cover.garage_door
+  - service: timer.start
+    data: {}
+    target:
+      entity_id: timer.garage_automation_active
+mode: single
 ```

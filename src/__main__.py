@@ -10,7 +10,8 @@ from .config import LOG, SCAN_INTERVAL, BLE_MAC_WATCH_LIST, MQTT_HOST, MQTT_PORT
 def _create_msg(sub_topic, payload):
     return {
         'topic': f'{MQTT_TOPIC}/{sub_topic}',
-        'payload': json.dumps(payload)
+        'payload': json.dumps(payload),
+        'retain': True
     }
 
 if __name__ == '__main__':
@@ -23,14 +24,14 @@ if __name__ == '__main__':
         try:
             msgs = []
             # Scan BLE
-            ble_data = bscanner.scan(SCAN_INTERVAL)
-            ble_pubs = {addr: vars(ble_data[addr]) for addr in ble_data.keys() if ble_data[addr].publish}
-            if ble_pubs:
-                msgs.append(_create_msg('ble', ble_pubs))
+            for addr, info in bscanner.scan(SCAN_INTERVAL).items():
+                if info.publish:
+                    msgs.append(_create_msg(f'ble/{addr}', {"detected": info.detected, "rssi": info.rssi}))
             # Scan climate
             reading = cscanner.scan()
             if reading.publish:
-                msgs.append(_create_msg('climate', vars(reading)))
+                msgs.append(_create_msg('temperature', reading.temperature))
+                msgs.append(_create_msg('humidity', reading.humidity))
             # Publish via MQTT
             if msgs:
                 publish.multiple(msgs, hostname=MQTT_HOST, port=MQTT_PORT, auth=MQTT_AUTH)
