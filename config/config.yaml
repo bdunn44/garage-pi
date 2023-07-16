@@ -1,0 +1,12 @@
+scan-interval: 5
+mqtt:
+  hostname: my-mqtt.my-domain.com
+  port: 1883
+  auth:
+    username: mqtt_client
+    password: my_password
+  topic: garage-pi
+climate:
+  publish-threshold-pct: .5
+ble:
+  publish-threshold-pct: 10

@@ -1,0 +1,2 @@
+streams:
+  cam: exec:raspivid --width 1280 --height 720 --framerate 15 -t 0 --inline -o -
