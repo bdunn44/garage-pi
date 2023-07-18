@@ -39,7 +39,7 @@ To install:
 ```
 cd garage-pi
 chmod +x scripts/install.sh
-./install.sh
+./scripts/install.sh
 ```
 
 Once installed it will automatically start upon boot. You can check the service's status and start/stop with standard systemd commands:
@@ -54,7 +54,7 @@ sudo service garage-pi restart
 You can easily test functionality with `scripts/test.sh`. Available commands are:
   - `./test.sh ble` - continuously scans for BLE beacons and prints details.
   - `./test.sh climate` - continuously takes climate readings and prints details.
-  - `./test.sh ble` - starts the go2rtc server and video stream. You can view the go2rtc UI at `your-pi-address:1984`.
+  - `./test.sh video` - starts the go2rtc server and video stream. You can view the go2rtc UI at `your-pi-address:1984`.
 
 ## MQTT Messages
 MQTT messages are published to the `garage-pi/ble/[MAC address]`, `garage-pi/temperature`, and `garage-pi/humidity` topics by default (the `garage-pi` piece is configurable). The log entries below provide good example messages:
@@ -70,35 +70,45 @@ You can configure MQTT sensors to read the MQTT messages and create a sensor to 
 ```yaml
 mqtt:
   sensor: 
-    - name: garage_car_ble
+    - name: car_detected
       state_topic: "garage-pi/ble/eb:8e:ef:d3:e7:98"
       value_template: "{{ value_json.detected }}"
-      json_attributes_topic: "garage-pi/ble/eb:8e:ef:d3:e7:98"
       icon: mdi:bluetooth-connect
+
+    - name: car_rssi
+      state_topic: "garage-pi/ble/eb:8e:ef:d3:e7:98"
+      value_template: "{{ value_json.rssi }}"
+      icon: mdi:signal
 
     - name: garage_temperature
       state_topic: "garage-pi/temperature"
+      suggested_display_precision: 1
+      unit_of_measurement: "°F"
       icon: mdi:thermometer
 
     - name: garage_humidity
       state_topic: "garage-pi/humidity"
+      unit_of_measurement: "%"
       icon: mdi:water-percent
 ```
 
 A basic automation could simply check for the BLE sensor to flip between `True` (detected) and `False` (not detected). The example below leverages a 30-second timer to ensure any rapid changes between detected and not detected while the car is at the boundary of signal range won't cause the garage door to go up and down. 
+
+__TODO:__ add Frigate object detection to double check if a car is present in the parking space, and trigger the departure event when a car object leaves the parking space zone.
+
 ```yaml
 alias: Control Garage Door
 description: ""
 trigger:
   - platform: state
     entity_id:
-      - sensor.garage_car_ble
+      - sensor.car_detected
     from: "False"
     to: "True"
     id: arrived
   - platform: state
     entity_id:
-      - sensor.garage_car_ble
+      - sensor.car_detected
     from: "True"
     to: "False"
     id: departed
