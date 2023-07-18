@@ -19,11 +19,15 @@ mqtt:
     password: my_password #<-- MQTT client password
   topic: garage-pi #<-- MQTT topic to post to
 climate:
+  enabled: true #<-- Enable/disable the climate sensor
   publish-threshold-pct: 1 #<-- Only publish changes in temp/humidity that are +/- 1% of the previous reading
 ble:
+  enabled: true #<-- Enable/disable the BLE sensor
   mac-watch-list: #<-- List of BLE beacon MAC addresses to scan for
     - 'eb:8e:ef:d3:e7:98' 
   publish-threshold-pct: 10 #<-- Only publish changes in signal strength (RSSI) that are +/- 10% of the previous reading
+video:
+  enabled: true #<-- Enable/disable video streaming
 ```
 
 The video stream configuration is generated during installation and can be found in `config/go2rtc.yaml`. See the [go2rtc documentation](https://github.com/AlexxIT/go2rtc/tree/v1.6.0) for more details on configuration.

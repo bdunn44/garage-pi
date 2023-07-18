@@ -25,12 +25,12 @@ then
 fi
 cat << EOF > "$SCRIPTS_PATH/../config/go2rtc.yaml"
 streams:
-  cam: exec:${CAM_CMD} --width 1280 --height 720 --framerate 15 -t 0 --inline -o -
+  cam: exec:${CAM_CMD} --width 640 --height 480 --framerate 15 -t 0 --inline -o -
 EOF
 
 # Create service, run at boot
 echo "Configuring garage-pi as a service to run at boot..."
-cat << EOF > /etc/systemd/system/garage-pi.service
+sudo tee /etc/systemd/system/garage-pi.service > /dev/null << EOF
 [Unit]
 Description=Service that keeps running the echo-server from startup.
 After=network.target

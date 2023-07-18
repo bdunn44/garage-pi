@@ -2,7 +2,7 @@ from bluepy.btle import Scanner
 from .config import LOG, BLE_PUBLISH_THRESHOLD
 
 class DeviceInfo():
-    def __init__(self, name=None, rssi=None, detected=False, publish=False):
+    def __init__(self, name=None, rssi=None, detected=None, publish=None):
         self.name = name
         self.rssi = rssi
         self.detected = detected
@@ -26,7 +26,7 @@ class BLEScanner(Scanner):
         # Find previously detected devices that are now out of range
         for addr, info in self.last_published.items():
             if addr not in [d.addr for d in devices]:
-                info.publish = info.detected # was previously detected
+                info.publish = info.detected == True # was previously detected
                 info.detected = False
                 info.rssi = None
                 result[addr] = info
