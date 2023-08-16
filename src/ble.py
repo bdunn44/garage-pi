@@ -1,4 +1,5 @@
-from bluepy.btle import Scanner
+from bluepy.btle import Scanner, BTLEManagementError
+import subprocess
 from .config import LOG, BLE_PUBLISH_THRESHOLD
 
 class DeviceInfo():
@@ -17,7 +18,12 @@ class BLEScanner(Scanner):
     
     def scan(self, timeout=10):
         LOG.debug("Scanning for BLE devices...")
-        devices = super().scan(timeout)
+        try:
+            devices = super().scan(timeout)
+        except BTLEManagementError:
+            # BT occasionally stops working. This fixes.
+            subprocess.call("hciconfig hci0 down && hciconfig hci0 up", shell=True)
+            devices = super().scan(timeout)
         device_ct = len(devices)
         if self.filter:
             devices = [d for d in devices if d.addr.lower() in self.filter]
